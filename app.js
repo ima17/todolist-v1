@@ -31,6 +31,13 @@ const item3 = new Item({
 
 const defaultItems = [item1, item2, item3];
 
+const listSchema = {
+  name: String,
+  items: [itemSchema],
+};
+
+const List = mongoose.model("List", listSchema);
+
 app.get("/", function (req, res) {
   const day = date.getDate();
 
@@ -69,7 +76,6 @@ app.post("/", function (req, res) {
 
 app.post("/delete", function (req, res) {
   const checkedItemId = req.body.checkBox;
-  console.log(checkedItemId);
 
   Item.findByIdAndRemove(checkedItemId, function (err) {
     if (!err) {
@@ -81,8 +87,31 @@ app.post("/delete", function (req, res) {
   });
 });
 
-app.get("/work", function (req, res) {
-  res.render("list", { listTitle: "Work", newListItems: workItems });
+app.get("/:customListName", function (req, res) {
+  const customListName = req.params.customListName;
+  console.log(customListName);
+
+  List.findOne({ name: customListName }, function (err, foundList) {
+    if (!err) {
+      if (foundList) {
+        res.render("list", {
+          listTitle: foundList.name,
+          newListItems: foundList.items,
+        });
+      } else {
+        const list = new List({
+          name: customListName,
+          items: defaultItems,
+        });
+
+        list.save();
+
+        res.redirect("/" + customListName);
+      }
+    } else {
+      console.log(err);
+    }
+  });
 });
 
 app.listen(3000, function () {
