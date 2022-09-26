@@ -31,30 +31,54 @@ const item3 = new Item({
 
 const defaultItems = [item1, item2, item3];
 
-Item.insertMany(defaultItems, function (err) {
-  if (err) {
-    console.log(err);
-  } else {
-    console.log("Successfully saved default items to the database");
-  }
-});
-
 app.get("/", function (req, res) {
   const day = date.getDate();
 
-  res.render("list", { listTitle: day, newListItems: items });
+  Item.find({}, function (err, foundItems) {
+    if (err) {
+      console.log(err);
+    } else {
+      if (foundItems.length === 0) {
+        Item.insertMany(defaultItems, function (err) {
+          if (err) {
+            console.log(err);
+          } else {
+            console.log("Successfully saved default items to the database");
+          }
+        });
+
+        res.redirect("/");
+      } else {
+        res.render("list", { listTitle: day, newListItems: foundItems });
+      }
+    }
+  });
 });
 
 app.post("/", function (req, res) {
-  const item = req.body.newItem;
+  const newItem = req.body.newItem;
 
-  if (req.body.list === "Work") {
-    workItems.push(item);
-    res.redirect("/work");
-  } else {
-    items.push(item);
-    res.redirect("/");
-  }
+  const item = new Item({
+    name: newItem,
+  });
+
+  item.save();
+
+  res.redirect("/");
+});
+
+app.post("/delete", function (req, res) {
+  const checkedItemId = req.body.checkBox;
+  console.log(checkedItemId);
+
+  Item.findByIdAndRemove(checkedItemId, function (err) {
+    if (!err) {
+      console.log("Successfully deleted checked item");
+      res.redirect("/");
+    } else {
+      console.log(err);
+    }
+  });
 });
 
 app.get("/work", function (req, res) {
